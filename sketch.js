@@ -24,6 +24,24 @@ class Circuit {
     createOutputNode(status, x, y) {
         this.outputNodes.push(new OutputNode(this.lastOutputNodeId, status, x, y));
     }
+
+    hoverCheck() {
+        for (let inputNode of this.inputNodes) {
+            inputNode.hoverCheck();
+        }
+        for (let outputNode of this.outputNodes) {
+            outputNode.hoverCheck();
+        }
+    }
+
+    draw() {
+        for (let inputNode of this.inputNodes) {
+            inputNode.draw();
+        }
+        for (let outputNode of this.outputNodes) {
+            outputNode.draw();
+        }
+    }
 }
 
 class Node {
@@ -128,12 +146,10 @@ const circuit = new Circuit();
 
 function setup() {
     createCanvas(600, 400);
-    circuit.createInputNode(false, 100, 60 * 1);
-    circuit.createInputNode(false, 100, 60 * 2);
-    circuit.createInputNode(false, 100, 60 * 3);
-    circuit.createInputNode(false, 100, 60 * 4);
-    circuit.createInputNode(false, 100, 60 * 5);
-    circuit.createOutputNode(false, 200, 60 * 1);
+    for (let i = 1; i <= 5; i++) {
+        circuit.createInputNode(false, 100, 60 * i);
+        circuit.createOutputNode(false, 200, 60 * i);
+    }
 }
 
 function draw() {
@@ -149,14 +165,8 @@ function draw() {
     }
     pop();
 
-    for (let inputNode of circuit.inputNodes) {
-        inputNode.hoverCheck();
-        inputNode.draw();
-    }
-    for (let outputNode of circuit.outputNodes) {
-        outputNode.hoverCheck();
-        outputNode.draw();
-    }
+    circuit.hoverCheck();
+    circuit.draw();
 
     push();
     fill("white");
