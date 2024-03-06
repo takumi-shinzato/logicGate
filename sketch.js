@@ -15,14 +15,21 @@ class Circuit {
         this.outputNodes = [];
         this.lastInputNodeId = 0;
         this.lastOutputNodeId = 0;
+        this.lines = [];
     }
 
     createInputNode(status, x, y) {
         this.inputNodes.push(new InputNode(this.lastInputNodeId, status, x, y));
+        this.lastInputNodeId++;
     }
 
     createOutputNode(status, x, y) {
         this.outputNodes.push(new OutputNode(this.lastOutputNodeId, status, x, y));
+        this.lastOutputNodeId++;
+    }
+
+    createLine(status, inputNodeId, outputNodeId, points) {
+        this.lines.push(new Line(status, inputNodeId, outputNodeId, points));
     }
 
     hoverCheck() {
@@ -41,6 +48,18 @@ class Circuit {
         for (let outputNode of this.outputNodes) {
             outputNode.draw();
         }
+        for (let line of this.lines) {
+            line.draw();
+        }
+    }
+
+    lineBooleanCheck() {
+        for (let line of this.lines) {
+            let inputNode = this.inputNodes.find(e => e.id === line.inputNodeId);
+            let outputNode = this.outputNodes.find(e => e.id === line.outputNodeId);
+            line.status = inputNode.status;
+            outputNode.status = inputNode.status;
+        }
     }
 }
 
@@ -51,14 +70,6 @@ class Node {
         this.y = y;
         this.hover = false;
         this.id = id;
-    }
-
-    click() {
-        this.toggle();
-    }
-
-    toggle() {
-        this.status = !this.status;
     }
 }
 
@@ -87,6 +98,14 @@ class InputNode extends Node {
 
     hoverCheck() {
         this.hover = dist(mouseX, mouseY, this.x, this.y) < this.radius;
+    }
+
+    click() {
+        this.toggle();
+    }
+
+    toggle() {
+        this.status = !this.status;
     }
 }
 
@@ -124,10 +143,11 @@ class OutputNode extends Node {
 }
 
 class Line {
-    constructor() {
-        this.inputNodeId;
-        this.outputNodeId;
-        this.points = [];
+    constructor(status, inputNodeId, outputNodeId, points) {
+        this.status = status;
+        this.inputNodeId = inputNodeId;
+        this.outputNodeId = outputNodeId;
+        this.points = points;
     }
 
     setInput(inputNodeId) {
@@ -136,6 +156,39 @@ class Line {
 
     setOutput(outputNodeId) {
         this.outputNodeId = outputNodeId;
+    }
+
+    setPoint(point) {
+        this.points.push(point);
+    }
+
+    draw() {
+        push();
+        if (this.status) {
+            stroke(trueColor);
+        } else {
+            stroke(falseColor);
+        }
+        strokeWeight(5);
+
+        // インプットノード, アウトプットノード, 中継点の末尾のインデックス を取得
+        let inputNode = circuit.inputNodes.find(e => e.id === this.inputNodeId);
+        let outputNode = circuit.outputNodes.find(e => e.id === this.outputNodeId);
+        // let lastIndex =  this.points.length - 1;
+        let displayPoints = [];
+        displayPoints.push(new Point(inputNode.x, inputNode.y));
+        displayPoints = displayPoints.concat(this.points);
+        displayPoints.push(new Point(outputNode.x, outputNode.y));
+
+        // 線を表示
+        for (let i = 1; i < displayPoints.length; i++) {
+            line(displayPoints[i - 1].x, displayPoints[i - 1].y, displayPoints[i].x, displayPoints[i].y);
+        }
+
+        // if (points.length > 0) {
+        //     line(points[points.length - 1].x, points[points.length - 1].y, mouseX, mouseY);
+        // }
+        pop();
     }
 }
 
@@ -150,22 +203,26 @@ function setup() {
         circuit.createInputNode(false, 100, 60 * i);
         circuit.createOutputNode(false, 200, 60 * i);
     }
+    circuit.createLine(false, 0, 3, [
+        new Point(150, 60),
+        new Point(150, 240)
+    ]);
+    circuit.createLine(false, 1, 0, [
+        new Point(170, 120),
+        new Point(170, 60)
+    ]);
+    circuit.createLine(false, 2, 2, []);
+    circuit.createLine(false, 4, 1, [
+        new Point(140, 300),
+    ]);
+    circuit.createLine(false, 3, 4, []);
 }
 
 function draw() {
     background(0);
-    push();
-    stroke(trueColor);
-    strokeWeight(5);
-    for (let i = 1; i < points.length; i++) {
-        line(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
-    }
-    if (points.length > 0) {
-        line(points[points.length - 1].x, points[points.length - 1].y, mouseX, mouseY);
-    }
-    pop();
 
     circuit.hoverCheck();
+    circuit.lineBooleanCheck();
     circuit.draw();
 
     push();
@@ -181,13 +238,6 @@ function mousePressed() {
             inputNode.click();
         }
     }
-    for (let outputNode of circuit.outputNodes) {
-        if (outputNode.hover) {
-            outputNode.click();
-        }
-    }
-    console.log(circuit.inputNodes);
-    console.log(circuit.outputNodes);
 
     if (mode == "LINE") {
         points.push(new Point(mouseX, mouseY));
