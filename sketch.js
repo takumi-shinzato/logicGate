@@ -222,7 +222,6 @@ function draw() {
     background(0);
 
     circuit.hoverCheck();
-    circuit.lineBooleanCheck();
     circuit.draw();
 
     push();
@@ -236,6 +235,7 @@ function mousePressed() {
     for (let inputNode of circuit.inputNodes) {
         if (inputNode.hover) {
             inputNode.click();
+            circuit.lineBooleanCheck();
         }
     }
 
