@@ -5,11 +5,13 @@ const circuit = new Circuit();
 function setup() {
     createCanvas(600, 400);
     for (let i = 1; i <= 5; i++) {
-        circuit.createNode(TYPE.INPUT, false, 100, 60 * i);
+        circuit.createNode(TYPE.TOGGLE, false, 100, 60 * i);
     }
     for (let i = 1; i <= 5; i++) {
-        circuit.createNode(TYPE.OUTPUT, false, 400, 60 * i);
+        circuit.createNode(TYPE.INPUT, false, 400, 60 * i);
     }
+    circuit.createGate(300, 200);
+    circuit.run();
     // circuit.createLine(false, [0], [8], [
     //     new Point(150, 60),
     //     new Point(150, 240)
@@ -43,7 +45,6 @@ function mousePressed() {
     for (let node of circuit.nodes) {
         if (node.hover) {
             node.click();
-            circuit.run();
             nodeHover = true;
         }
     }
@@ -52,7 +53,9 @@ function mousePressed() {
             circuit.edittingLine.setPoint(new Point(mouseX, mouseY));
         }
     }
-
+    circuit.run();
+    // console.log(circuit.nodes);
+    // console.log(circuit.edges);
 }
 
 function keyPressed() {
