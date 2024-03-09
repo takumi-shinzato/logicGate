@@ -43,21 +43,13 @@ function draw() {
 }
 
 function mousePressed() {
-    let nodeHover = false;
-    for (let node of circuit.nodes) {
-        if (node.hover) {
-            node.click();
-            nodeHover = true;
-        }
-    }
-    if (!nodeHover) { // クリックした時にノードにホバーしていなければ
-        if (mode === "EDITTING LINE") {
-            circuit.edittingLine.setPoint(new Point(mouseX, mouseY));
-        }
-    }
+    circuit.mousePressed();
 }
 
 function keyPressed() {
-    if (key == "n") mode = "NORMAL";
+    if (key == "n") {
+        mode = "NORMAL";
+        circuit.edittingLine = new EdittingLine();
+    };
     if (key == "l") mode = "ADD LINE";
 }
