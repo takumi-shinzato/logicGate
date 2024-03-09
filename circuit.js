@@ -16,6 +16,9 @@ class Circuit {
         this.lastGateId = 0;
         this.edittingLine = new EdittingLine();
         this.mode = "NORMAL";
+        this.offset = new Point(0, 0);
+        this.draggingGate = {};
+        this.draggingNodes = [];
 
         const nodes = props?.nodes;
         const gates = props?.gates;
@@ -90,6 +93,9 @@ class Circuit {
     hoverCheck() {
         for (let node of this.nodes) {
             node.hoverCheck();
+        }
+        for (let gate of this.gates) {
+            gate.hoverCheck();
         }
     }
 
@@ -190,6 +196,55 @@ class Circuit {
                 this.edittingLine.setPoint(new Point(mouseX, mouseY));
             }
         }
+
+        if (this.mode === "MOVE") {
+            for (let gate of this.gates) {
+                if (gate.hover) {
+                    this.draggingGate = {
+                        id: gate.id,
+                        offset: new Point(gate.x - mouseX, gate.y - mouseY)
+                    }
+                    gate.inputNodeIds.forEach(nodeId => {
+                        let node = this.getNode(nodeId);
+                        this.draggingNodes.push({
+                            id: node.id,
+                            offset: new Point(node.x - mouseX, node.y - mouseY)
+                        });
+                    });
+                    gate.outputNodeIds.forEach(nodeId => {
+                        let node = this.getNode(nodeId);
+                        this.draggingNodes.push({
+                            id: node.id,
+                            offset: new Point(node.x - mouseX, node.y - mouseY)
+                        });
+                    });
+                }
+            }
+        }
+    }
+
+    mouseDragged() {
+        if (this.mode === "MOVE") {
+            for (let gate of this.gates) {
+                if (gate.id === this.draggingGate.id) {
+                    // ゲートそのものを移動させる
+                    gate.x = mouseX + this.draggingGate.offset.x;
+                    gate.y = mouseY + this.draggingGate.offset.y;
+
+                    // ゲートに接続しているノードを移動させる
+                    this.draggingNodes.forEach(draggingNode => {
+                        this.getNode(draggingNode.id).setPoint(
+                            new Point(mouseX + draggingNode.offset.x, mouseY + draggingNode.offset.y)
+                        );
+                    })
+                }
+            }
+        }
+    }
+
+    mouseReleased() {
+        this.draggingGate = {};
+        this.draggingNodes = [];
     }
 
     draw() {
@@ -224,6 +279,11 @@ class Node {
         this.y = y;
         this.hover = false;
         this.id = id;
+    }
+
+    setPoint(point) {
+        this.x = point.x;
+        this.y = point.y;
     }
 
     draw(){}
@@ -337,8 +397,18 @@ class Gate {
         this.outputNodeIds.push(id);
     }
 
-    draw(){}
     compute(){}
+
+    hoverCheck() {
+        this.hover = (
+            this.x - this.width / 2 < mouseX &&
+            mouseX < this.x + this.width / 2 &&
+            this.y - this.width / 2 < mouseY &&
+            mouseY < this.y + this.width / 2
+        );
+    }
+
+    draw(){}
 }
 
 class Line extends Gate {
@@ -358,6 +428,8 @@ class Line extends Gate {
     getOutputStatuses(s) {
         return [s[0]];
     }
+
+    hoverCheck(){};
 
     draw(inputNode, outputNode) {
         push();
@@ -446,6 +518,7 @@ class NotGate extends Gate {
         super(id, inputNodeIds, outputNodeIds);
         this.x = x;
         this.y = y;
+        this.type = "NOT";
         this.width = 70;
         this.height = 35;
         this.inputPositions = [new Point(x - 44, y)];
@@ -475,6 +548,7 @@ class AndGate extends Gate {
         super(id, inputNodeIds, outputNodeIds);
         this.x = x;
         this.y = y;
+        this.type = "AND";
         this.width = 70;
         this.height = 50;
         this.inputPositions = [new Point(x - 43, y - 15), new Point(x - 43, y + 15)];
@@ -504,6 +578,7 @@ class OrGate extends Gate {
         super(id, inputNodeIds, outputNodeIds);
         this.x = x;
         this.y = y;
+        this.type = "OR";
         this.width = 70;
         this.height = 50;
         this.inputPositions = [new Point(x - 43, y - 15), new Point(x - 43, y + 15)];
