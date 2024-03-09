@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>論理回路シミュレータ</title>
+    <title>論理回路シミュレーター</title>
+    <h1>論理回路シミュレーター</h1>
+    <ul>
+        <li>○ と □ を線でつなぐことができます。</li>
+        <li>異なる ○ から同一の □ に線を繋ぐことはできません。</li>
+    </ul>
     <form id="modeButton">
         <input type="radio" name="mode" id="NORMAL" checked>
         <label for="NORMAL">ON/OFF切り替え</label>
         <input type="radio" name="mode" id="ADD LINE">
         <label for="ADD LINE">線を追加</label>
+        <input type="radio" name="mode" id="MOVE">
+        <label for="MOVE">移動</label>
     </form>
     <script src="./p5.min.js"></script>
 	<script src="./circuit.js"></script>
