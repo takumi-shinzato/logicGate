@@ -9,12 +9,22 @@ class Point {
 }
 
 class Circuit {
-    constructor() {
+    constructor(props) {
         this.nodes = [];
         this.lastNodeId = 0;
         this.gates = [];
         this.lastGateId = 0;
         this.edittingLine = new EdittingLine();
+        this.mode = "NORMAL";
+
+        const nodes = props?.nodes;
+        const gates = props?.gates;
+        nodes?.forEach(node => {
+            this.createNode(node.type, node.x, node.y);
+        });
+        gates?.forEach(gate => {
+            this.createGate(gate.type, gate.x, gate.y);
+        });
     }
 
     createNode(type, x, y) {
@@ -33,7 +43,6 @@ class Circuit {
         }
         this.nodes.push(newNode);
         this.lastNodeId++;
-        console.log(this.nodes);
         return newNode;
     }
 
@@ -152,17 +161,17 @@ class Circuit {
         for (let node of this.nodes) {
             if (node.hover) { // クリックされたノードだったら
                 isHoveringNode = true;
-                if (mode === "NORMAL") { // 通常状態のとき
+                if (this.mode === "NORMAL") { // 通常状態のとき
                     if (node.type === "TOGGLE") {
                         node.toggle();
                     }
-                } else if (mode === "ADD LINE") { // ライン追加可能状態のとき
+                } else if (this.mode === "ADD LINE") { // ライン追加可能状態のとき
                     if (node.category === "INPUT" && this.findLine(node.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
                         return;
                     }
                     this.edittingLine.setFirstNode(node);
-                    mode = "EDITTING LINE";
-                } else if (mode === "EDITTING LINE") { // ライン編集中のとき
+                    this.mode = "EDITTING LINE";
+                } else if (this.mode === "EDITTING LINE") { // ライン編集中のとき
                     if (node.category === this.edittingLine.firstNode.category) { // 同じ種類のノード同士は繋げない
                         return;
                     }
@@ -172,12 +181,12 @@ class Circuit {
                     this.edittingLine.setSecondNode(node);
                     this.createLine(this.edittingLine.status, [this.edittingLine.inputNode.id], [this.edittingLine.outputNode.id], this.edittingLine.points);
                     this.edittingLine = new EdittingLine();
-                    mode = "ADD LINE";
+                    this.mode = "ADD LINE";
                 }
             }
         }
         if (!isHoveringNode) { // クリックした時にノードにホバーしていなければ
-            if (mode === "EDITTING LINE") {
+            if (this.mode === "EDITTING LINE") {
                 this.edittingLine.setPoint(new Point(mouseX, mouseY));
             }
         }
