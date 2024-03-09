@@ -2,6 +2,23 @@ const initialData = {
     nodes: [
         {type: "TOGGLE", x: 100, y: 100},
         {type: "TOGGLE", x: 100, y: 200},
+        {type: "RESULT", x: 500, y: 100},
+        {type: "RESULT", x: 500, y: 200},
+    ],
+    gates: [
+        {type: "AND", x: 150, y: 300},
+        {type: "AND", x: 150, y: 400},
+        {type: "OR" , x: 300, y: 300},
+        {type: "OR" , x: 300, y: 400},
+        {type: "NOT", x: 450, y: 300},
+        {type: "NOT", x: 450, y: 400},
+    ]
+}
+
+const circuitData = {
+    nodes: [
+        {type: "TOGGLE", x: 100, y: 100},
+        {type: "TOGGLE", x: 100, y: 200},
         {type: "TOGGLE", x: 100, y: 300},
         {type: "TOGGLE", x: 100, y: 400},
         {type: "RESULT", x: 500, y: 100},
@@ -36,6 +53,14 @@ function draw() {
 
 function mousePressed() {
     circuit.mousePressed();
+}
+
+function mouseDragged() {
+    circuit.mouseDragged();
+}
+
+function mouseReleased() {
+    circuit.mouseReleased();
 }
 
 const $radioButtons = document.getElementById("modeButton");
