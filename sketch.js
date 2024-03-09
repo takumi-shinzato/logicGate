@@ -5,13 +5,25 @@ const circuit = new Circuit();
 function setup() {
     createCanvas(600, 400);
     for (let i = 1; i <= 5; i++) {
-        circuit.createNode(TYPE.TOGGLE, false, 100, 60 * i);
+        circuit.createNode("TOGGLE", false, 100, 60 * i);
     }
     for (let i = 1; i <= 5; i++) {
-        circuit.createNode(TYPE.INPUT, false, 400, 60 * i);
+        circuit.createNode("INPUT", false, 500, 60 * i);
     }
-    circuit.createGate(300, 200);
-    circuit.run();
+
+    // 半加算器
+    circuit.createGate("OR", 210, 100);
+    circuit.createGate("AND", 210, 200);
+    circuit.createGate("NOT", 350, 190);
+    circuit.createGate("AND", 400, 100);
+
+    // フリップフロップ
+    // circuit.createGate("OR", 210, 100);
+    // circuit.createGate("OR", 210, 250);
+    // circuit.createGate("NOT", 360, 100);
+    // circuit.createGate("NOT", 360, 250);
+
+
     // circuit.createLine(false, [0], [8], [
     //     new Point(150, 60),
     //     new Point(150, 240)
@@ -30,8 +42,7 @@ function setup() {
 function draw() {
     background(0);
 
-    circuit.hoverCheck();
-    circuit.draw();
+    circuit.run();
 
     push();
     fill("white");
@@ -53,7 +64,6 @@ function mousePressed() {
             circuit.edittingLine.setPoint(new Point(mouseX, mouseY));
         }
     }
-    circuit.run();
     // console.log(circuit.nodes);
     // console.log(circuit.edges);
 }

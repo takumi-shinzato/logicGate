@@ -1,13 +1,6 @@
 const trueColor = "#76FF03";
 const falseColor = "#EEEEEE";
 
-const TYPE = {
-    INPUT: 0,
-    OUTPUT: 1,
-    TOGGLE: 2,
-    LINE: 3,
-}
-
 const MODE = {
     Normal: 0,
     AddLine: 1,
@@ -33,13 +26,13 @@ class Circuit {
     }
 
     createNode(type, status, x, y) {
-        if (type === TYPE.INPUT) {
+        if (type === "INPUT") {
             this.nodes.push(new InputNode(this.lastNodeId, status, x, y));
             this.lastNodeId++;
-        } else if (type === TYPE.OUTPUT) {
+        } else if (type === "OUTPUT") {
             this.nodes.push(new OutputNode(this.lastNodeId, status, x, y));
             this.lastNodeId++;
-        } else if (type === TYPE.TOGGLE) {
+        } else if (type === "TOGGLE") {
             this.nodes.push(new ToggleNode(this.lastNodeId, status, x, y));
             this.lastNodeId++;
         }
@@ -50,9 +43,19 @@ class Circuit {
         this.lastEdgeId++;
     }
 
-    createGate(x, y) {
-        this.edges.push(new NotGate(this.lastEdgeId, x, y));
-        this.lastEdgeId++;
+    createGate(type, x, y) {
+        if (type === "NOT") {
+            this.edges.push(new NotGate(this.lastEdgeId, x, y));
+            this.lastEdgeId++;
+        } else if (type === "AND") {
+            this.edges.push(new AndGate(this.lastEdgeId, x, y));
+            this.lastEdgeId++;
+        } else if (type === "OR") {
+            this.edges.push(new OrGate(this.lastEdgeId, x, y));
+            this.lastEdgeId++;
+        } else {
+            console.error(`${type}ゲートは定義されていません。`);
+        }
     }
 
     hoverCheck() {
@@ -61,47 +64,20 @@ class Circuit {
         }
     }
 
-    run() {
+    compute() {
+        for (let edge of this.edges) {
+            edge.boolCheck();
+        }
+
         for (let node of this.nodes) {
             node.visited = node.start;
         }
-
-        while(this.nodes.some(e => e.visited === false)) {
-            for (let node of this.nodes) {
-                if (node.visited) {
-                    continue;
-                }
-                console.log(node.id);
-                console.log(this.findEdgeByOutput(node.id));
-                node.visited = true;
-            }
-        }
-
-        // let target = [];
-        // for (let node of this.nodes) {
-        //     if (node.type === TYPE.TOGGLE) {
-        //         if (this.findEdgeByOutput(node.id).length > 0) {
-        //             target.push(this.findEdgeByOutput(node.id));
-        //         }
-        //     }
-        // }
-        // console.log(target);
-        // while (target.length > 0) {
-        //     let targetNodeId = target.shift();
-        //     this.edges[targetNodeId].boolCheck();
-        //     let newTargetNodes = this.edges[targetNodeId].outputNodeIds;
-        //     for (let node of newTargetNodes) {
-        //         if (this.findEdgeByOutput(node.id).length > 0) {
-        //             target.push(this.findEdgeByOutput(node.id));
-        //         }
-        //     }
-        // }
     }
 
     findLine(inputNodeId) {
         let edgeIds = [];
         for (let edge of this.edges) {
-            if (edge.type === TYPE.LINE) {
+            if (edge.type === "LINE") {
                 if (edge.inputNodeIds.includes(inputNodeId)) {
                     edgeIds.push(edge.id);
                 }
@@ -134,7 +110,7 @@ class Circuit {
     findGate(outputNodeId) {
         let edgeIds = [];
         for (let edge of this.edges) {
-            if (edge.type !== TYPE.LINE) {
+            if (edge.type !== "LINE") {
                 if (edge.outputNodeIds.includes(outputNodeId)) {
                     edgeIds.push(edge.id);
                 }
@@ -154,6 +130,12 @@ class Circuit {
             this.edittingLine.draw();
         }
     }
+
+    run() {
+        this.hoverCheck();
+        this.compute();
+        this.draw();
+    }
 }
 
 class Node {
@@ -172,17 +154,17 @@ class Node {
 
     click() {
         if (mode === MODE.Normal) { // 通常状態のとき
-            // if (this.type === TYPE.INPUT) { // インプットはON/OFF切り替え不可
+            // if (this.type === "INPUT") { // インプットはON/OFF切り替え不可
             //     return;
             // }
-            // if (this.type === TYPE.OUTPUT && circuit.findGate(this.id).length > 0) { // アウトプットでゲート接続されているものはON/OFF切り替え不可
+            // if (this.type === "OUTPUT" && circuit.findGate(this.id).length > 0) { // アウトプットでゲート接続されているものはON/OFF切り替え不可
             //     return;
             // }
-            if (this.type === TYPE.TOGGLE) {
+            if (this.type === "TOGGLE") {
                 this.toggle();
             }
         } else if (mode === MODE.AddLine) { // ライン追加可能状態のとき
-            if (this.type === TYPE.INPUT && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
+            if (this.type === "INPUT" && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
                 return;
             }
             circuit.edittingLine.setFirstNode(this);
@@ -191,7 +173,7 @@ class Node {
             if (this.type === circuit.edittingLine.firstNode.type) { // インプット同士、アウトプット同士は繋げないようにする
                 return;
             }
-            if (this.type === TYPE.INPUT && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
+            if (this.type === "INPUT" && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
                 return;
             }
             circuit.edittingLine.setSecondNode(this);
@@ -209,8 +191,8 @@ class Node {
 class InputNode extends Node {
     constructor(id, status, x, y) {
         super(id, status, x, y);
-        this.width = 20;
-        this.type = TYPE.INPUT;
+        this.width = 16;
+        this.type = "INPUT";
     }
 
     draw() {
@@ -243,7 +225,7 @@ class OutputNode extends Node {
     constructor(id, status, x, y) {
         super(id, status, x, y);
         this.radius = 10;
-        this.type = TYPE.OUTPUT;
+        this.type = "OUTPUT";
     }
 
     draw() {
@@ -270,7 +252,7 @@ class OutputNode extends Node {
 class ToggleNode extends OutputNode {
     constructor(id, status, x, y) {
         super(id, status, x, y);
-        this.type = TYPE.TOGGLE;
+        this.type = "TOGGLE";
         this.start = true;
         this.visited = true;
     }
@@ -295,7 +277,7 @@ class Line extends Edge {
         this.outputNodeIds = outputNodeIds;
         this.status = status;
         this.points = points;
-        this.type = TYPE.LINE;
+        this.type = "LINE";
         this.inputNode = circuit.nodes.find(e => e.id === this.inputNodeIds[0]);
         this.outputNode = circuit.nodes.find(e => e.id === this.outputNodeIds[0]);
     }
@@ -351,7 +333,7 @@ class EdittingLine {
 
     setSecondNode(secondNode) {
         this.secondNode = secondNode;
-        if (this.firstNode.type === TYPE.INPUT) {
+        if (this.firstNode.type === "INPUT") {
             this.inputNode = this.firstNode;
             this.outputNode = this.secondNode;
         } else {
@@ -433,6 +415,94 @@ class NotGate extends Edge {
         textSize(14);
         textStyle(BOLD);
         text("NOT", this.x, this.y);
+        pop();
+    }
+}
+
+class AndGate extends Edge {
+    constructor(id, x, y) {
+        super(id);
+        this.x = x;
+        this.y = y;
+        this.width = 70;
+        this.height = 50;
+        this.inputNum = 2;
+        this.outputNum = 1;
+        
+        for (let i = 0; i < this.inputNum; i++) {
+            this.inputNodeIds.push(circuit.lastNodeId);
+            circuit.nodes.push(new InputNode(circuit.lastNodeId, false, this.x - 45, this.y - 15 + (i * 30)));
+            circuit.lastNodeId++;
+        }
+        for (let i = 0; i < this.outputNum; i++) {
+            this.outputNodeIds.push(circuit.lastNodeId);
+            circuit.nodes.push(new OutputNode(circuit.lastNodeId, false, this.x + 45, this.y));
+            circuit.lastNodeId++;
+        }
+
+        this.inputNode1 = circuit.nodes.find(e => e.id === this.inputNodeIds[0]);
+        this.inputNode2 = circuit.nodes.find(e => e.id === this.inputNodeIds[1]);
+        this.outputNode = circuit.nodes.find(e => e.id === this.outputNodeIds[0]);
+    }
+
+    boolCheck() {
+        this.outputNode.status = this.inputNode1.status && this.inputNode2.status;
+    }
+
+    draw() {
+        push();
+        fill("blue");
+        rectMode(CENTER);
+        rect(this.x, this.y, this.width, this.height, 3);
+        fill("white");
+        textAlign(CENTER, CENTER);
+        textSize(14);
+        textStyle(BOLD);
+        text("AND", this.x, this.y);
+        pop();
+    }
+}
+
+class OrGate extends Edge {
+    constructor(id, x, y) {
+        super(id);
+        this.x = x;
+        this.y = y;
+        this.width = 70;
+        this.height = 50;
+        this.inputNum = 2;
+        this.outputNum = 1;
+        
+        for (let i = 0; i < this.inputNum; i++) {
+            this.inputNodeIds.push(circuit.lastNodeId);
+            circuit.nodes.push(new InputNode(circuit.lastNodeId, false, this.x - 45, this.y - 15 + (i * 30)));
+            circuit.lastNodeId++;
+        }
+        for (let i = 0; i < this.outputNum; i++) {
+            this.outputNodeIds.push(circuit.lastNodeId);
+            circuit.nodes.push(new OutputNode(circuit.lastNodeId, false, this.x + 45, this.y));
+            circuit.lastNodeId++;
+        }
+
+        this.inputNode1 = circuit.nodes.find(e => e.id === this.inputNodeIds[0]);
+        this.inputNode2 = circuit.nodes.find(e => e.id === this.inputNodeIds[1]);
+        this.outputNode = circuit.nodes.find(e => e.id === this.outputNodeIds[0]);
+    }
+
+    boolCheck() {
+        this.outputNode.status = this.inputNode1.status || this.inputNode2.status;
+    }
+
+    draw() {
+        push();
+        fill("blue");
+        rectMode(CENTER);
+        rect(this.x, this.y, this.width, this.height, 3);
+        fill("white");
+        textAlign(CENTER, CENTER);
+        textSize(14);
+        textStyle(BOLD);
+        text("OR", this.x, this.y);
         pop();
     }
 }
