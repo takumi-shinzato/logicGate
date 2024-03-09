@@ -1,13 +1,5 @@
 const trueColor = "#76FF03";
-const falseColor = "#EEEEEE";
-
-const MODE = {
-    Normal: 0,
-    AddLine: 1,
-    EdittingLine: 2,
-}
-
-let mode = MODE.Normal;
+const falseColor = "#9E9E9E";
 
 class Point {
     constructor(x, y) {
@@ -20,42 +12,56 @@ class Circuit {
     constructor() {
         this.nodes = [];
         this.lastNodeId = 0;
-        this.edges = [];
-        this.lastEdgeId = 0;
+        this.gates = [];
+        this.lastGateId = 0;
         this.edittingLine = new EdittingLine();
     }
 
-    createNode(type, status, x, y) {
+    createNode(type, x, y) {
         if (type === "INPUT") {
-            this.nodes.push(new InputNode(this.lastNodeId, status, x, y));
-            this.lastNodeId++;
+            this.nodes.push(new InputNode(this.lastNodeId, x, y));
         } else if (type === "OUTPUT") {
-            this.nodes.push(new OutputNode(this.lastNodeId, status, x, y));
-            this.lastNodeId++;
+            this.nodes.push(new OutputNode(this.lastNodeId, x, y));
         } else if (type === "TOGGLE") {
-            this.nodes.push(new ToggleNode(this.lastNodeId, status, x, y));
-            this.lastNodeId++;
+            this.nodes.push(new ToggleNode(this.lastNodeId, x, y));
+        } else if (type === "RESULT") {
+            this.nodes.push(new ResultNode(this.lastNodeId, x, y));
+        } else {
+            console.error(`${type}ノードは定義されていません。`);
+            return;
         }
+        this.lastNodeId++;
+    }
+
+    getNode(id) {
+        return this.nodes.find(node => node.id === id);
+    }
+
+    getNodeStatuses(nodeIds) {
+        let statuses = [];
+        for (let nodeId of nodeIds) {
+            statuses.push(this.getNode(nodeId).status);
+        }
+        return statuses;
     }
 
     createLine(status, inputNodeIds, outputNodeIds, points) {
-        this.edges.push(new Line(this.lastEdgeId, inputNodeIds, outputNodeIds, status, points));
-        this.lastEdgeId++;
+        this.gates.push(new Line(this.lastGateId, inputNodeIds, outputNodeIds, status, points));
+        this.lastGateId++;
     }
 
     createGate(type, x, y) {
         if (type === "NOT") {
-            this.edges.push(new NotGate(this.lastEdgeId, x, y));
-            this.lastEdgeId++;
+            this.gates.push(new NotGate(this.lastGateId, x, y));
         } else if (type === "AND") {
-            this.edges.push(new AndGate(this.lastEdgeId, x, y));
-            this.lastEdgeId++;
+            this.gates.push(new AndGate(this.lastGateId, x, y));
         } else if (type === "OR") {
-            this.edges.push(new OrGate(this.lastEdgeId, x, y));
-            this.lastEdgeId++;
+            this.gates.push(new OrGate(this.lastGateId, x, y));
         } else {
             console.error(`${type}ゲートは定義されていません。`);
+            return;
         }
+        this.lastGateId++;
     }
 
     hoverCheck() {
@@ -65,66 +71,77 @@ class Circuit {
     }
 
     compute() {
-        for (let edge of this.edges) {
-            edge.boolCheck();
-        }
+        for (let gate of this.gates) {
+            // inputStatuses を配列で取得
+            let inputStatuses = this.getNodeStatuses(gate.inputNodeIds);
+            if (gate.type === "LINE") {
+                gate.setStatus(inputStatuses[0]);
+            }
 
-        for (let node of this.nodes) {
-            node.visited = node.start;
+            // outputStatus を配列で取得
+            let outputStatuses = gate.getOutputStatuses(inputStatuses);
+
+            gate.outputNodeIds.forEach((outputNodeId, i) => {
+                this.getNode(outputNodeId).status = outputStatuses[i];
+                // console.log(`ノード${outputNodeId}の状態を ${outputStatuses[i]} に`);
+                // console.log(this.gates);
+            });
+
+            // gate.compute();
         }
     }
 
-    findLine(inputNodeId) {
-        let edgeIds = [];
-        for (let edge of this.edges) {
-            if (edge.type === "LINE") {
-                if (edge.inputNodeIds.includes(inputNodeId)) {
-                    edgeIds.push(edge.id);
+    findLine(outputNodeId) {
+        let gateIds = [];
+        for (let gate of this.gates) {
+            if (gate.type === "LINE") {
+                if (gate.outputNodeIds.includes(outputNodeId)) {
+                    gateIds.push(gate.id);
                 }
             }
         }
-        return edgeIds;
+        return gateIds;
     }
 
-    findEdgeByInput(inputNodeId) {
-        let edgeIds = [];
-        for (let edge of this.edges) {
-            if (edge.inputNodeIds.includes(inputNodeId)) {
-                edgeIds.push(edge.id);
+    findGateByInput(inputNodeId) {
+        let gateIds = [];
+        for (let gate of this.gates) {
+            if (gate.inputNodeIds.includes(inputNodeId)) {
+                gateIds.push(gate.id);
             }
         }
-        return edgeIds;
+        return gateIds;
     }
 
-    findEdgeByOutput(outputNodeId) {
-        let edgeIds = [];
-        for (let edge of this.edges) {
-            if (edge.outputNodeIds.includes(outputNodeId)) {
-                edgeIds.push(edge.id);
+    findGateByOutput(outputNodeId) {
+        let gateIds = [];
+        for (let gate of this.gates) {
+            if (gate.outputNodeIds.includes(outputNodeId)) {
+                gateIds.push(gate.id);
             }
         }
-        console.log(`${outputNodeId}はエッジ${edgeIds}に繋がっている`);
-        return edgeIds;
+        console.log(`${outputNodeId}はエッジ${gateIds}に繋がっている`);
+        return gateIds;
     }
 
     findGate(outputNodeId) {
-        let edgeIds = [];
-        for (let edge of this.edges) {
-            if (edge.type !== "LINE") {
-                if (edge.outputNodeIds.includes(outputNodeId)) {
-                    edgeIds.push(edge.id);
+        let gateIds = [];
+        for (let gate of this.gates) {
+            if (gate.type !== "LINE") {
+                if (gate.outputNodeIds.includes(outputNodeId)) {
+                    gateIds.push(gate.id);
                 }
             }
         }
-        return edgeIds;
+        return gateIds;
     }
 
     draw() {
         for (let node of this.nodes) {
             node.draw();
         }
-        for (let edge of this.edges) {
-            edge.draw();
+        for (let gate of this.gates) {
+            gate.draw();
         }
         if (this.edittingLine.isActive()) {
             this.edittingLine.draw();
@@ -139,47 +156,39 @@ class Circuit {
 }
 
 class Node {
-    constructor(id, status, x, y) {
-        this.status = status;
+    constructor(id, x, y) {
+        this.status = false;
         this.x = x;
         this.y = y;
         this.hover = false;
         this.id = id;
-        this.visited = false;
-        this.start = false;
     }
 
     draw(){}
     hoverCheck(){}
 
     click() {
-        if (mode === MODE.Normal) { // 通常状態のとき
-            // if (this.type === "INPUT") { // インプットはON/OFF切り替え不可
-            //     return;
-            // }
-            // if (this.type === "OUTPUT" && circuit.findGate(this.id).length > 0) { // アウトプットでゲート接続されているものはON/OFF切り替え不可
-            //     return;
-            // }
+        if (mode === "NORMAL") { // 通常状態のとき
             if (this.type === "TOGGLE") {
                 this.toggle();
             }
-        } else if (mode === MODE.AddLine) { // ライン追加可能状態のとき
-            if (this.type === "INPUT" && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
+        } else if (mode === "ADD LINE") { // ライン追加可能状態のとき
+            if (this.category === "INPUT" && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
                 return;
             }
             circuit.edittingLine.setFirstNode(this);
-            mode = MODE.EdittingLine;
-        } else if (mode === MODE.EdittingLine) { // ライン編集中のとき
-            if (this.type === circuit.edittingLine.firstNode.type) { // インプット同士、アウトプット同士は繋げないようにする
+            mode = "EDITTING LINE";
+        } else if (mode === "EDITTING LINE") { // ライン編集中のとき
+            if (this.category === circuit.edittingLine.firstNode.category) { // 同じ種類のノード同士は繋げない
                 return;
             }
-            if (this.type === "INPUT" && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
+            if (this.category === "INPUT" && circuit.findLine(this.id).length > 0) { // すでにエッジと繋がっているインプットノードには繋げない
                 return;
             }
             circuit.edittingLine.setSecondNode(this);
             circuit.createLine(circuit.edittingLine.status, [circuit.edittingLine.inputNode.id], [circuit.edittingLine.outputNode.id], circuit.edittingLine.points)
             circuit.edittingLine = new EdittingLine();
-            mode = MODE.AddLine;
+            mode = "ADD LINE";
         }
     }
 
@@ -189,10 +198,11 @@ class Node {
 }
 
 class InputNode extends Node {
-    constructor(id, status, x, y) {
-        super(id, status, x, y);
+    constructor(id, x, y) {
+        super(id, x, y);
         this.width = 16;
         this.type = "INPUT";
+        this.category = "INPUT";
     }
 
     draw() {
@@ -207,7 +217,7 @@ class InputNode extends Node {
             strokeWeight(3);
         }
         rectMode(CENTER);
-        rect(this.x, this.y, this.width, this.width);
+        rect(this.x, this.y, this.width, this.width, 3);
         pop();
     }
 
@@ -222,10 +232,11 @@ class InputNode extends Node {
 }
 
 class OutputNode extends Node {
-    constructor(id, status, x, y) {
-        super(id, status, x, y);
-        this.radius = 10;
+    constructor(id, x, y) {
+        super(id, x, y);
+        this.radius = 8;
         this.type = "OUTPUT";
+        this.category = "OUTPUT";
     }
 
     draw() {
@@ -250,41 +261,60 @@ class OutputNode extends Node {
 }
 
 class ToggleNode extends OutputNode {
-    constructor(id, status, x, y) {
-        super(id, status, x, y);
+    constructor(id, x, y) {
+        super(id, x, y);
         this.type = "TOGGLE";
-        this.start = true;
-        this.visited = true;
+        this.category = "OUTPUT";
     }
 }
 
-class Edge {
+class ResultNode extends InputNode {
+    constructor(id, x, y) {
+        super(id, x, y);
+        this.type = "RESULT";
+        this.category = "INPUT";
+    }
+}
+
+class Gate {
     constructor(id) {
         this.id = id;
         this.inputNodeIds = [];
         this.outputNodeIds = [];
+        this.type;
         this.hover = false;
     }
 
+    setInputNodeIds(Ids) {
+        this.inputNodeIds = Ids;
+    }
+
+    setOutputNodeIds(Ids) {
+        this.outputNodeIds = Ids;
+    }
+
     draw(){}
-    boolCheck(){}
+    compute(){}
 }
 
-class Line extends Edge {
+class Line extends Gate {
     constructor(id, inputNodeIds, outputNodeIds, status, points) {
         super(id);
         this.inputNodeIds = inputNodeIds;
         this.outputNodeIds = outputNodeIds;
+        this.type = "LINE";
         this.status = status;
         this.points = points;
-        this.type = "LINE";
         this.inputNode = circuit.nodes.find(e => e.id === this.inputNodeIds[0]);
         this.outputNode = circuit.nodes.find(e => e.id === this.outputNodeIds[0]);
     }
 
-    boolCheck() {
-        this.status = this.outputNode.status;
-        this.inputNode.status = this.outputNode.status;
+    setStatus(s) {
+        this.status = s;
+    }
+
+    getOutputStatuses(s) {
+        return [s[0]];
     }
 
     draw() {
@@ -333,7 +363,7 @@ class EdittingLine {
 
     setSecondNode(secondNode) {
         this.secondNode = secondNode;
-        if (this.firstNode.type === "INPUT") {
+        if (this.firstNode.category === "OUTPUT") {
             this.inputNode = this.firstNode;
             this.outputNode = this.secondNode;
         } else {
@@ -369,14 +399,7 @@ class EdittingLine {
     }
 }
 
-// const gateInfo = {
-//     notGate: {
-//         input: 1,
-//         output: 1
-//     }
-// }
-
-class NotGate extends Edge {
+class NotGate extends Gate {
     constructor(id, x, y) {
         super(id);
         this.x = x;
@@ -388,26 +411,23 @@ class NotGate extends Edge {
         
         for (let i = 0; i < this.inputNum; i++) {
             this.inputNodeIds.push(circuit.lastNodeId);
-            circuit.nodes.push(new InputNode(circuit.lastNodeId, false, this.x - 45, this.y));
+            circuit.nodes.push(new InputNode(circuit.lastNodeId, this.x - 43, this.y));
             circuit.lastNodeId++;
         }
         for (let i = 0; i < this.outputNum; i++) {
             this.outputNodeIds.push(circuit.lastNodeId);
-            circuit.nodes.push(new OutputNode(circuit.lastNodeId, false, this.x + 45, this.y));
+            circuit.nodes.push(new OutputNode(circuit.lastNodeId, this.x + 44, this.y));
             circuit.lastNodeId++;
         }
-
-        this.inputNode = circuit.nodes.find(e => e.id === this.inputNodeIds[0]);
-        this.outputNode = circuit.nodes.find(e => e.id === this.outputNodeIds[0]);
     }
 
-    boolCheck() {
-        this.outputNode.status = !this.inputNode.status;
+    getOutputStatuses(s) {
+        return [!s[0]];
     }
 
     draw() {
         push();
-        fill("red");
+        fill("#F44336");
         rectMode(CENTER);
         rect(this.x, this.y, this.width, this.height, 3);
         fill("white");
@@ -419,7 +439,7 @@ class NotGate extends Edge {
     }
 }
 
-class AndGate extends Edge {
+class AndGate extends Gate {
     constructor(id, x, y) {
         super(id);
         this.x = x;
@@ -431,27 +451,23 @@ class AndGate extends Edge {
         
         for (let i = 0; i < this.inputNum; i++) {
             this.inputNodeIds.push(circuit.lastNodeId);
-            circuit.nodes.push(new InputNode(circuit.lastNodeId, false, this.x - 45, this.y - 15 + (i * 30)));
+            circuit.nodes.push(new InputNode(circuit.lastNodeId, this.x - 43, this.y - 15 + (i * 30)));
             circuit.lastNodeId++;
         }
         for (let i = 0; i < this.outputNum; i++) {
             this.outputNodeIds.push(circuit.lastNodeId);
-            circuit.nodes.push(new OutputNode(circuit.lastNodeId, false, this.x + 45, this.y));
+            circuit.nodes.push(new OutputNode(circuit.lastNodeId, this.x + 44, this.y));
             circuit.lastNodeId++;
         }
-
-        this.inputNode1 = circuit.nodes.find(e => e.id === this.inputNodeIds[0]);
-        this.inputNode2 = circuit.nodes.find(e => e.id === this.inputNodeIds[1]);
-        this.outputNode = circuit.nodes.find(e => e.id === this.outputNodeIds[0]);
     }
 
-    boolCheck() {
-        this.outputNode.status = this.inputNode1.status && this.inputNode2.status;
+    getOutputStatuses(s) {
+        return [s[0] && s[1]];
     }
 
     draw() {
         push();
-        fill("blue");
+        fill("#2196F3");
         rectMode(CENTER);
         rect(this.x, this.y, this.width, this.height, 3);
         fill("white");
@@ -463,7 +479,7 @@ class AndGate extends Edge {
     }
 }
 
-class OrGate extends Edge {
+class OrGate extends Gate {
     constructor(id, x, y) {
         super(id);
         this.x = x;
@@ -475,27 +491,23 @@ class OrGate extends Edge {
         
         for (let i = 0; i < this.inputNum; i++) {
             this.inputNodeIds.push(circuit.lastNodeId);
-            circuit.nodes.push(new InputNode(circuit.lastNodeId, false, this.x - 45, this.y - 15 + (i * 30)));
+            circuit.nodes.push(new InputNode(circuit.lastNodeId, this.x - 43, this.y - 15 + (i * 30)));
             circuit.lastNodeId++;
         }
         for (let i = 0; i < this.outputNum; i++) {
             this.outputNodeIds.push(circuit.lastNodeId);
-            circuit.nodes.push(new OutputNode(circuit.lastNodeId, false, this.x + 45, this.y));
+            circuit.nodes.push(new OutputNode(circuit.lastNodeId, this.x + 44, this.y));
             circuit.lastNodeId++;
         }
-
-        this.inputNode1 = circuit.nodes.find(e => e.id === this.inputNodeIds[0]);
-        this.inputNode2 = circuit.nodes.find(e => e.id === this.inputNodeIds[1]);
-        this.outputNode = circuit.nodes.find(e => e.id === this.outputNodeIds[0]);
     }
 
-    boolCheck() {
-        this.outputNode.status = this.inputNode1.status || this.inputNode2.status;
+    getOutputStatuses(s) {
+        return [s[0] || s[1]];
     }
 
     draw() {
         push();
-        fill("blue");
+        fill("#FFAB00");
         rectMode(CENTER);
         rect(this.x, this.y, this.width, this.height, 3);
         fill("white");
